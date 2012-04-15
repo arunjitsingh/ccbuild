@@ -225,24 +225,16 @@ class Build(object):
       comp = CompileLibrary(target_name, target_path, self.srcs)  # deps?
       srcs = self.compiled_libs + [comp]
       self.library = LinkLibrary(target_name, target_path, self.libs, srcs)
-    elif self.target_type == 'binary':
+    elif self.target_type in ('binary', 'test'):
       comp = CompileBinary(target_name, target_path, self.srcs)
       srcs = self.compiled_libs + [comp]
       self.binary = LinkBinary(target_name, target_path, self.libs, srcs)
 
 
-def Test(target):
-  # build target and link with googletest
-  logger.info('Testing "%s"', target)
-
-
 def InitializeBuild(target):
-  if FLAGS.test:
-    Test(target)
-  else:
-    build = Build(target)
-    if FLAGS.run and build.binary:
-      ExecuteCommand([build.binary] + FLAGS.binargs)
+  build = Build(target)
+  if build.binary and (FLAGS.run or FLAGS.test):
+    ExecuteCommand([build.binary] + FLAGS.binargs)
 
 
 def Setup(srcbase, buildbase):
