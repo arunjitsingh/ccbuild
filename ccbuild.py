@@ -256,6 +256,7 @@ gflags.DEFINE_bool('debug', True, 'Enable debugging logs')
 gflags.DEFINE_bool('dryrun', False, 'Don\'t execute anything')
 gflags.DEFINE_bool('run', False, 'Execute a binary target')
 gflags.DEFINE_bool('test', False, 'Execute a test target')
+gflags.DEFINE_bool('quiet', False, 'Quieten output to above warnings')
 
 gflags.DEFINE_list('binargs', [], 'Arguments to pass to a binary target')
 
@@ -271,6 +272,8 @@ def main(argv):
     FLAGS.debug = True
   if FLAGS.debug:
     logger.setLevel(logger.DEBUG)
+  if FLAGS.quiet or FLAGS.test:
+    logger.setLevel(logger.WARNING)
   if FLAGS.run and '--' in argv:
     FLAGS.binargs = argv[argv.index('--') + 1:]
   Setup(FLAGS.srcbase, FLAGS.buildbase)
