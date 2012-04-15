@@ -294,3 +294,6 @@ if __name__ == '__main__':
   except BuildError as error:
     logger.error(error)
     sys.exit(1)
+  except subprocess.CalledProcessError as error:
+    logger.error('A sub-process errored: %s', error)
+    sys.exit(2)
