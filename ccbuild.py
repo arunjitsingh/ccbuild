@@ -126,8 +126,9 @@ def ExecuteCommand(command, outfile=None):
   return subprocess.check_call(command)
 
 
-def CompileLibrary(name, dirname, srcs):
+def CompileLibrary(name, dirname, srcs, defs=None):
   # command: CXX -o OUT -c -fPIC COMMON_FLAGS srcs
+  defs = defs or []
   out = GetBuild(os.path.join(dirname, name) + '.os')
   flags = map(lambda i: '-I' + i, INCLUDES)
   flags.extend(COMMON_FLAGS)
@@ -135,13 +136,15 @@ def CompileLibrary(name, dirname, srcs):
   command = [CXX, '-o', out]
   command.extend(['-c', '-fPIC'])
   command.extend(flags)
+  command.extend(defs)
   command.extend(srcs)
   if ExecuteCommand(command, out) == 0:
     logger.info('Compiled library "%s:%s"', dirname, name)
   return out
 
 
-def LinkLibrary(name, dirname, libs, comps):
+def LinkLibrary(name, dirname, libs, comps, linkstatic=None):
+  linkstatic = linkstatic or []
   out = GetBuild(os.path.join(dirname, name) + '.dylib')
   ldflags = map(lambda l: '-L' + l, LIBPATHS)
   libs.extend(COMMON_LIBS)
@@ -151,25 +154,29 @@ def LinkLibrary(name, dirname, libs, comps):
   command.extend(ldflags)
   command.extend(libs)
   command.extend(comps)
+  command.extend(linkstatic)
   if ExecuteCommand(command, out) == 0:
     logger.info('Linked library "%s:%s"', dirname, name)
   return out
 
 
-def CompileBinary(name, dirname, srcs):
+def CompileBinary(name, dirname, srcs, defs=None):
   # command: CXX -o OUT -c COMMON_FLAGS srcs
+  defs = defs or []
   out = GetBuild(os.path.join(dirname, name) + '.o')
   flags = map(lambda i: '-I' + i, INCLUDES)
   srcs = map(lambda s: GetSrc(s), srcs)
   command = [CXX, '-o', out, '-c']
   command.extend(flags)
+  command.extend(defs)
   command.extend(srcs)
   if ExecuteCommand(command, out) == 0:
     logger.info('Compiled binary "%s:%s"', dirname, name)
   return out
 
 
-def LinkBinary(name, dirname, libs, comps):
+def LinkBinary(name, dirname, libs, comps, linkstatic=None):
+  linkstatic = linkstatic or []
   out = GetBuild(os.path.join(dirname, name))
   ldflags = map(lambda l: '-L' + l, LIBPATHS)
   libs = map(lambda l: '-l' + l, libs)
@@ -177,6 +184,7 @@ def LinkBinary(name, dirname, libs, comps):
   command.extend(ldflags)
   command.extend(libs)
   command.extend(comps)
+  command.extend(linkstatic)
   if ExecuteCommand(command, out) == 0:
     logger.info('Linked binary "%s:%s"', dirname, name)
   return out
@@ -205,6 +213,8 @@ class Build(object):
     self.deps = map(_Mapper, self.target.get('deps', []))
 
     self.libs = self.target.get('libs', [])
+    self.defs = self.target.get('defs', [])
+    self.linkstatic = self.target.get('linkstatic', [])
 
     logger.debug('target: %s', self.target)
     logger.debug('srcs: %s', self.srcs)
@@ -222,13 +232,21 @@ class Build(object):
         self.compiled_libs.append(b.library)
 
     if self.target_type == 'library':
-      comp = CompileLibrary(target_name, target_path, self.srcs)  # deps?
+      comp = CompileLibrary(target_name, target_path, self.srcs, self.defs)
       srcs = self.compiled_libs + [comp]
-      self.library = LinkLibrary(target_name, target_path, self.libs, srcs)
+      self.library = LinkLibrary(target_name,
+                                 target_path,
+                                 self.libs,
+                                 srcs,
+                                 self.linkstatic)
     elif self.target_type in ('binary', 'test'):
-      comp = CompileBinary(target_name, target_path, self.srcs)
+      comp = CompileBinary(target_name, target_path, self.srcs, self.defs)
       srcs = self.compiled_libs + [comp]
-      self.binary = LinkBinary(target_name, target_path, self.libs, srcs)
+      self.binary = LinkBinary(target_name,
+                               target_path,
+                               self.libs,
+                               srcs,
+                               self.linkstatic)
 
 
 def InitializeBuild(target):
