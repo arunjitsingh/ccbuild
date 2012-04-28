@@ -76,6 +76,9 @@ if not os.path.isdir(BUILD_BASE):
   os.mkdir(BUILD_BASE)
 
 
+read_build_files = {}
+
+
 def ResolveBuildPath(base, pathspec):
   if pathspec.startswith('//'):
     return pathspec
@@ -101,11 +104,14 @@ def GetBuild(path):
 
 def GetBuildForTarget(path):
   path = GetSrc(os.path.join(path, 'build.json'))
+  if path in read_build_files:
+    return read_build_files[path]
   build_file = None
   try:
     build_file = open(path, 'r')
     build_json = build_file.read()
-    return json.loads(build_json)
+    read_build_files[path] = json.loads(build_json)
+    return read_build_files[path]
   except IOError:
     raise BuildError('"%s" was not readable' % path)
   except ValueError:
