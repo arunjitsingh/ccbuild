@@ -270,7 +270,7 @@ def Setup(srcbase, buildbase):
 
 gflags.DEFINE_string('srcbase', SRC_BASE, 'The source base (SRC_BASE)')
 gflags.DEFINE_string('buildbase', BUILD_BASE, 'The build base')
-gflags.DEFINE_bool('debug', True, 'Enable debugging logs')
+gflags.DEFINE_bool('debug', False, 'Enable debugging logs')
 gflags.DEFINE_bool('dryrun', False, 'Don\'t execute anything')
 gflags.DEFINE_bool('run', False, 'Execute a binary target')
 gflags.DEFINE_bool('test', False, 'Execute a test target')
