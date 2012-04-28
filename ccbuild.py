@@ -36,13 +36,13 @@ Author: Arunjit Singh <arunjit@me.com>
 
 __author__ = 'Arunjit Singh <arunjit@me.com>'
 
-import gflags
 import json
 import os
 import re
 import subprocess
 import sys
 
+import gflags
 from ajpylib.logger import logger
 
 # Alias gflags' FLAGS for ease of use
