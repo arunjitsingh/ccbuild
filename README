@@ -1,0 +1,5 @@
+This is how I try to build my C++ code.
+
+More documentation soon.
+
+The current application has almost no performance improvements: no dependency management at all. It'll just build all the targets every time, irrespective of what files were changed.
