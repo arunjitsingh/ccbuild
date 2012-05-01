@@ -75,8 +75,9 @@ LIBPATHS = [os.path.join(DEV_ROOT, 'lib')] + SYS_LIBPATHS
 if not os.path.isdir(BUILD_BASE):
   os.mkdir(BUILD_BASE)
 
-
+# pylint: disable-msg=C0103
 read_build_files = {}
+compiled_targets = []
 
 
 def ResolveBuildPath(base, pathspec):
@@ -136,6 +137,9 @@ def CompileLibrary(name, dirname, srcs, defs=None):
   # command: CXX -o OUT -c -fPIC COMMON_FLAGS srcs
   defs = defs or []
   out = GetBuild(os.path.join(dirname, name) + '.os')
+  if out in compiled_targets:
+    return out
+  compiled_targets.append(out)
   flags = map(lambda i: '-I' + i, INCLUDES)
   flags.extend(COMMON_FLAGS)
   srcs = map(lambda s: GetSrc(s), srcs)
@@ -170,6 +174,9 @@ def CompileBinary(name, dirname, srcs, defs=None):
   # command: CXX -o OUT -c COMMON_FLAGS srcs
   defs = defs or []
   out = GetBuild(os.path.join(dirname, name) + '.o')
+  if out in compiled_targets:
+    return out
+  compiled_targets.append(out)
   flags = map(lambda i: '-I' + i, INCLUDES)
   srcs = map(lambda s: GetSrc(s), srcs)
   command = [CXX, '-o', out, '-c']
