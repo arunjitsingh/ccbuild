@@ -37,13 +37,20 @@ Author: Arunjit Singh <arunjit@me.com>
 __author__ = 'Arunjit Singh <arunjit@me.com>'
 
 import json
+import logging
 import os
 import re
 import subprocess
 import sys
 
+try:
+  from ajpylib import logger
+except ImportError:
+  logging.warning('ajpylib.logger is not available')
+  pass
 import gflags
-from ajpylib.logger import logger
+
+_LOG = logging.getLogger('ccbuild')
 
 # Alias gflags' FLAGS for ease of use
 FLAGS = gflags.FLAGS
@@ -123,7 +130,7 @@ def GetBuildForTarget(path):
 
 
 def ExecuteCommand(command, outfile=None):
-  logger.debug(' '.join(command))
+  _LOG.debug(' '.join(command))
   if FLAGS.dryrun:
     return 0
   if outfile:
@@ -149,7 +156,7 @@ def CompileLibrary(name, dirname, srcs, defs=None):
   command.extend(defs)
   command.extend(srcs)
   if ExecuteCommand(command, out) == 0:
-    logger.info('Compiled library "%s:%s"', dirname, name)
+    _LOG.info('Compiled library "%s:%s"', dirname, name)
   return out
 
 
@@ -166,7 +173,7 @@ def LinkLibrary(name, dirname, libs, comps, linkstatic=None):
   command.extend(comps)
   command.extend(linkstatic)
   if ExecuteCommand(command, out) == 0:
-    logger.info('Linked library "%s:%s"', dirname, name)
+    _LOG.info('Linked library "%s:%s"', dirname, name)
   return out
 
 
@@ -184,7 +191,7 @@ def CompileBinary(name, dirname, srcs, defs=None):
   command.extend(defs)
   command.extend(srcs)
   if ExecuteCommand(command, out) == 0:
-    logger.info('Compiled binary "%s:%s"', dirname, name)
+    _LOG.info('Compiled binary "%s:%s"', dirname, name)
   return out
 
 
@@ -199,7 +206,7 @@ def LinkBinary(name, dirname, libs, comps, linkstatic=None):
   command.extend(comps)
   command.extend(linkstatic)
   if ExecuteCommand(command, out) == 0:
-    logger.info('Linked binary "%s:%s"', dirname, name)
+    _LOG.info('Linked binary "%s:%s"', dirname, name)
   return out
 
 
@@ -209,7 +216,7 @@ class Build(object):
   _build_map = {}
 
   def __init__(self, target):
-    logger.info('Building "%s"', target)
+    _LOG.info('Building "%s"', target)
     target_path, target_name = tuple(target.split(':'))
     self.targets = GetBuildForTarget(target_path)
     self.target = self.targets.get(target_name)
@@ -229,9 +236,9 @@ class Build(object):
     self.defs = self.target.get('defs', [])
     self.linkstatic = self.target.get('linkstatic', [])
 
-    logger.debug('target: %s', self.target)
-    logger.debug('srcs: %s', self.srcs)
-    logger.debug('deps: %s', self.deps)
+    _LOG.debug('target: %s', self.target)
+    _LOG.debug('srcs: %s', self.srcs)
+    _LOG.debug('deps: %s', self.deps)
 
     self.library = None
     self.binary = None
@@ -277,9 +284,9 @@ def Setup(srcbase, buildbase):
 
   INCLUDES = local_includes + SYS_INCLUDES
 
-#  logger.info('Source base: "%s"', SRC_BASE)
-#  logger.info('Build base: "%s"', BUILD_BASE)
-#  logger.info('Includes: "%s"', INCLUDES)
+#  _LOG.info('Source base: "%s"', SRC_BASE)
+#  _LOG.info('Build base: "%s"', BUILD_BASE)
+#  _LOG.info('Includes: "%s"', INCLUDES)
 
 gflags.DEFINE_string('srcbase', SRC_BASE, 'The source base (SRC_BASE)')
 gflags.DEFINE_string('buildbase', BUILD_BASE, 'The build base')
@@ -302,9 +309,9 @@ def main(argv):
   if FLAGS.dryrun:
     FLAGS.debug = True
   if FLAGS.debug:
-    logger.setLevel(logger.DEBUG)
+    _LOG.setLevel(_LOG.DEBUG)
   if FLAGS.quiet or FLAGS.test:
-    logger.setLevel(logger.WARNING)
+    _LOG.setLevel(_LOG.WARNING)
   if FLAGS.run and '--' in argv:
     FLAGS.binargs = argv[argv.index('--') + 1:]
   Setup(FLAGS.srcbase, FLAGS.buildbase)
@@ -318,8 +325,8 @@ if __name__ == '__main__':
   try:
     main(sys.argv)
   except BuildError as error:
-    logger.error(error)
+    _LOG.error(error)
     sys.exit(1)
   except subprocess.CalledProcessError as error:
-    logger.error('A sub-process errored: %s', error)
+    _LOG.error('A sub-process errored: %s', error)
     sys.exit(2)
