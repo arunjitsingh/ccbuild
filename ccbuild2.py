@@ -72,7 +72,7 @@ CWD = os.getcwd()
 HOME = os.getenv('HOME')
 
 # The C++ compiler
-CXX = 'clang++'
+CXX = os.getenv('CXX', 'clang++')
 
 COMMON_FLAGS = ['-Wall']
 DEBUG_FLAGS = ['-g']
