@@ -68,8 +68,8 @@ DEV_ROOT = os.getenv('DEV_ROOT')
 SRC_BASE = os.path.join(DEV_ROOT, 'src')
 BUILD_BASE = os.path.join(SRC_BASE, 'build')
 
-SYS_INCLUDES = ['/include', '/usr/include', '/usr/local/include']
-SYS_LIBPATHS = ['/usr/lib', '/usr/local/lib']
+SYS_INCLUDES = ['/usr/local/homebrew/include', '/usr/local/include', '/usr/include', '/include']
+SYS_LIBPATHS = ['/usr/local/homebrew/lib', '/usr/local/lib', '/usr/lib']
 
 COMMON_FLAGS = ['-Wall']
 DEBUG_FLAGS = ['-g']
