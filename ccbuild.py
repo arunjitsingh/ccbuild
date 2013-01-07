@@ -129,6 +129,14 @@ def GetBuildForTarget(path):
       build_file.close()
 
 
+def InsertBeforeEvery(value, lst):
+  ret = []
+  for v in lst:
+    ret.append(value)
+    ret.append(v)
+  return ret
+
+
 def ExecuteCommand(command, outfile=None):
   _LOG.debug(' '.join(command))
   if FLAGS.dryrun:
@@ -143,14 +151,17 @@ def ExecuteCommand(command, outfile=None):
 def CompileLibrary(name, dirname, srcs, defs=None):
   # command: CXX -o OUT -c -fPIC COMMON_FLAGS srcs
   defs = defs or []
-  out = GetBuild(os.path.join(dirname, name) + '.os')
+  out = GetBuild(os.path.join(dirname, name) + '.o')
   if out in compiled_targets:
     return out
   compiled_targets.append(out)
   flags = map(lambda i: '-I' + i, INCLUDES)
   flags.extend(COMMON_FLAGS)
   srcs = map(lambda s: GetSrc(s), srcs)
-  command = [CXX, '-o', out]
+  command = [CXX]
+  if FLAGS.gdb:
+    command.append('-g')
+  command.extend(['-o', out])
   command.extend(['-c', '-fPIC'])
   command.extend(flags)
   command.extend(defs)
@@ -160,18 +171,23 @@ def CompileLibrary(name, dirname, srcs, defs=None):
   return out
 
 
-def LinkLibrary(name, dirname, libs, comps, linkstatic=None):
+def LinkLibrary(name, dirname, libs, comps, frameworks, linkstatic=None):
   linkstatic = linkstatic or []
   out = GetBuild(os.path.join(dirname, name) + '.dylib')
   ldflags = map(lambda l: '-L' + l, LIBPATHS)
   libs.extend(COMMON_LIBS)
   libs = map(lambda l: '-l' + l, libs)
-  command = [CXX, '-o', out]
+  frameworks = InsertBeforeEvery('-framework', frameworks)
+  command = [CXX]
+  if FLAGS.gdb:
+    command.append('-g')
+  command.extend(['-o', out])
+  command.extend(comps)
   command.extend(['-dynamiclib'])
+  command.extend(linkstatic)
   command.extend(ldflags)
   command.extend(libs)
-  command.extend(comps)
-  command.extend(linkstatic)
+  command.extend(frameworks)
   if ExecuteCommand(command, out) == 0:
     _LOG.info('Linked library "%s:%s"', dirname, name)
   return out
@@ -186,7 +202,10 @@ def CompileBinary(name, dirname, srcs, defs=None):
   compiled_targets.append(out)
   flags = map(lambda i: '-I' + i, INCLUDES)
   srcs = map(lambda s: GetSrc(s), srcs)
-  command = [CXX, '-o', out, '-c']
+  command = [CXX]
+  if FLAGS.gdb:
+    command.append('-g')
+  command.extend(['-o', out, '-c'])
   command.extend(flags)
   command.extend(defs)
   command.extend(srcs)
@@ -195,16 +214,21 @@ def CompileBinary(name, dirname, srcs, defs=None):
   return out
 
 
-def LinkBinary(name, dirname, libs, comps, linkstatic=None):
+def LinkBinary(name, dirname, libs, comps, frameworks, linkstatic=None):
   linkstatic = linkstatic or []
   out = GetBuild(os.path.join(dirname, name))
   ldflags = map(lambda l: '-L' + l, LIBPATHS)
   libs = map(lambda l: '-l' + l, libs)
-  command = [CXX, '-o', out]
-  command.extend(ldflags)
-  command.extend(libs)
+  frameworks = InsertBeforeEvery('-framework', frameworks)
+  command = [CXX]
+  if FLAGS.gdb:
+    command.append('-g')
+  command.extend(['-o', out])
   command.extend(comps)
   command.extend(linkstatic)
+  command.extend(ldflags)
+  command.extend(libs)
+  command.extend(frameworks)
   if ExecuteCommand(command, out) == 0:
     _LOG.info('Linked binary "%s:%s"', dirname, name)
   return out
@@ -233,6 +257,7 @@ class Build(object):
     self.deps = map(_Mapper, self.target.get('deps', []))
 
     self.libs = self.target.get('libs', [])
+    self.frameworks = self.target.get('frameworks', [])
     self.defs = self.target.get('defs', [])
     self.linkstatic = self.target.get('linkstatic', [])
 
@@ -258,6 +283,7 @@ class Build(object):
                                  target_path,
                                  self.libs,
                                  srcs,
+                                 self.frameworks,
                                  self.linkstatic)
     elif self.target_type in ('binary', 'test'):
       comp = CompileBinary(target_name, target_path, self.srcs, self.defs)
@@ -266,6 +292,7 @@ class Build(object):
                                target_path,
                                self.libs,
                                srcs,
+                               self.frameworks,
                                self.linkstatic)
 
 
@@ -273,6 +300,12 @@ def InitializeBuild(target):
   build = Build(target)
   if build.binary and (FLAGS.run or FLAGS.test):
     ExecuteCommand([build.binary] + FLAGS.binargs)
+
+  dirname, name = tuple(target.split(':'))
+  build_path = GetBuild(os.path.join(dirname, name))
+  _LOG.debug('Build path: %s', build_path)
+  if not FLAGS.debug and not os.path.exists('build'):
+    os.symlink(os.path.dirname(build_path), 'build')
 
 
 def Setup(srcbase, buildbase):
@@ -290,6 +323,7 @@ def Setup(srcbase, buildbase):
 
 gflags.DEFINE_string('srcbase', SRC_BASE, 'The source base (SRC_BASE)')
 gflags.DEFINE_string('buildbase', BUILD_BASE, 'The build base')
+gflags.DEFINE_bool('gdb', False, 'Add the -g GDB debugging flag')
 gflags.DEFINE_bool('debug', False, 'Enable debugging logs')
 gflags.DEFINE_bool('dryrun', False, 'Don\'t execute anything')
 gflags.DEFINE_bool('run', False, 'Execute a binary target')
