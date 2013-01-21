@@ -44,10 +44,9 @@ import subprocess
 import sys
 
 try:
-  from ajpylib import logger
+  from ajpy import logger
 except ImportError:
-  logging.warning('ajpylib.logger is not available')
-  pass
+  logging.warning('ajpy.logger is not available')
 import gflags
 
 _LOG = logging.getLogger('ccbuild')
